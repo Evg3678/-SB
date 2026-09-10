@@ -1,0 +1,23 @@
+[server]
+maxUploadSize = 100
+enableCORS = true
+enableXsrfProtection = true
+
+[browser]
+gatherUsageStats = false
+
+[theme]
+base = "dark"
+font = "sans serif"
+
+[theme.dark]
+primaryColor = "#34d399"
+backgroundColor = "#0e1523"
+secondaryBackgroundColor = "#182235"
+textColor = "#e6edf5"
+
+[theme.light]
+primaryColor = "#168455"
+backgroundColor = "#ffffff"
+secondaryBackgroundColor = "#f0f4f8"
+textColor = "#172c42"
