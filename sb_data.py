@@ -136,6 +136,30 @@ def filter_data(frame, start, end, timezone="UTC", selections=None):
     return result
 
 
+def linked_filters(frame, start, end, timezone, selections):
+    """Facets use all other filters; choices within one facet are OR-ed."""
+    period = filter_data(frame, start, end, timezone)
+    current = {col: list(selections.get(col, [])) for col in CATEGORIES}
+    removed = {}
+    while True:
+        options = {}
+        for col in CATEGORIES:
+            mask = pd.Series(True, index=period.index)
+            for other, values in current.items():
+                if other != col and values:
+                    mask &= period[other].isin(values)
+            options[col] = sorted(period.loc[mask, col].unique())
+        cleaned = {col: [v for v in current[col] if v in options[col]]
+                   for col in CATEGORIES}
+        if cleaned == current:
+            return current, options, removed
+        for col in CATEGORIES:
+            lost = [v for v in current[col] if v not in cleaned[col]]
+            if lost:
+                removed.setdefault(col, []).extend(lost)
+        current = cleaned
+
+
 def summarize(frame, by):
     result = frame.groupby(by, dropna=False, sort=True).agg(
         requests=("source_row", "size"),

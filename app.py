@@ -5,7 +5,7 @@ from datetime import datetime
 from zipfile import BadZipFile
 import streamlit as st
 from sb_data import (CATEGORIES, LABELS, METRICS, excel_sheets, read_table,
-                     normalize, filter_data, summarize, display_summary, details, csv_bytes)
+                     normalize, filter_data, linked_filters, summarize, display_summary, details, csv_bytes)
 from sb_report import heatmap, share, daily_figure, number, build_html
 
 st.set_page_config(page_title="Дашборд SB", page_icon="📊", layout="wide")
@@ -27,12 +27,21 @@ def render_dashboard(frame, source_name, source_id, issues):
     if not isinstance(period, (tuple, list)) or len(period) != 2:
         st.info("Выберите начало и конец периода.")
         return
-    selections = {}
+    keys = {col: "filter_" + source_id[:12] + col for col in CATEGORIES}
+    selections, options, removed = linked_filters(
+        frame, period[0], period[1], timezone,
+        {col: st.session_state.get(key, []) for col, key in keys.items()})
+    # Update all widget state before rendering any filter, avoiding order dependence.
+    for col, key in keys.items():
+        if st.session_state.get(key) != selections[col]:
+            st.session_state[key] = selections[col]
+    if removed:
+        st.sidebar.info("Сняты недоступные значения фильтров: " +
+                        ", ".join(LABELS[col] for col in removed))
     for col in CATEGORIES:
-        values = sorted(frame[col].unique())
         selections[col] = st.sidebar.multiselect(
-            LABELS[col], values, key="filter_" + source_id[:12] + col,
-            help="Пустой выбор — все значения. Фильтры применяются совместно.")
+            LABELS[col], options[col], key=keys[col],
+            help="Варианты учитывают период и остальные фильтры. Пустой выбор — все доступные значения.")
     selected = filter_data(frame, period[0], period[1], timezone, selections)
     context = {"period": [str(d) for d in period], "timezone": timezone,
                "selections": selections, "source": source_id}

@@ -6,7 +6,7 @@ from html.parser import HTMLParser
 import unittest
 from unittest.mock import patch
 import pandas as pd
-from sb_data import SCHEMA, normalize, read_table, filter_data, summarize, csv_bytes, METRICS
+from sb_data import SCHEMA, normalize, read_table, filter_data, linked_filters, summarize, csv_bytes, METRICS
 from sb_report import build_html, heatmap, share
 
 
@@ -37,6 +37,25 @@ class ReportParser(HTMLParser):
 
 
 class SBTests(unittest.TestCase):
+    def test_linked_filters(self):
+        frame, _ = normalize(fixture())
+        start, end = date(2026, 9, 7), date(2026, 9, 8)
+        selected, options, removed = linked_filters(
+            frame, start, end, "Europe/Moscow", {"organization": ["Org"], "model": ["m2"]})
+        self.assertEqual(options["employee_id"], ["e1"])
+        self.assertEqual(options["status"], ["error"])
+        self.assertEqual(options["model"], ["m1", "m2"])
+        self.assertFalse(removed)
+        selected, options, removed = linked_filters(
+            frame, start, end, "Europe/Moscow", {"status": ["success"]})
+        self.assertEqual(options["model"], ["gigachat", "m1"])
+        self.assertEqual(options["organization"], ["Org", "Org2"])
+        selected, options, removed = linked_filters(
+            frame, start, start, "Europe/Moscow", {"model": ["m2"]})
+        self.assertEqual(selected["model"], [])
+        self.assertEqual(removed["model"], ["m2"])
+        self.assertTrue(all(not values for values in options.values()))
+
     def test_missing_is_not_zero(self):
         df, issues = normalize(fixture())
         self.assertEqual(len(df), 3)
