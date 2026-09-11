@@ -37,6 +37,29 @@ class ReportParser(HTMLParser):
 
 
 class SBTests(unittest.TestCase):
+    def test_employee_chat_thread_ids(self):
+        frame, _ = normalize(fixture())
+        summary = summarize(frame, ["employee_id"]).set_index("employee_id")
+        self.assertEqual(summary.loc["e1", "chat_count"], 1)
+        self.assertEqual(summary.loc["e1", "chat_ids"], "c1")
+        self.assertEqual(summary.loc["e1", "thread_count"], 2)
+        self.assertEqual(summary.loc["e1", "thread_ids"], "t1; t2")
+        self.assertEqual(summary.requests.sum(), len(frame))
+        self.assertEqual(summary.loc["e1", "cost_rub"], 1.5)
+        filtered = frame[frame.model.eq("m2")]
+        self.assertEqual(summarize(filtered, ["email"]).iloc[0].thread_ids, "t2")
+        self.assertEqual(summarize(frame, ["chat_id"]).iloc[0].thread_count, 2)
+        self.assertNotIn("chat_ids", summarize(frame, ["model"]).columns)
+        frame.loc[frame.employee_id.eq("e2"), "chat_id"] = "(не указано)"
+        summary = summarize(frame, ["employee_id"]).set_index("employee_id")
+        self.assertEqual(summary.loc["e2", "chat_count"], 0)
+        self.assertEqual(summary.loc["e2", "chat_ids"], "")
+        selected = filter_data(frame, date(2026,9,7), date(2026,9,8))
+        report = build_html(selected, "synthetic.csv", "UTC", "all")
+        self.assertIn("ID чатов", report)
+        self.assertIn("ID тредов", report)
+        self.assertIn("t1; t2", report)
+
     def test_linked_filters(self):
         frame, _ = normalize(fixture())
         start, end = date(2026, 9, 7), date(2026, 9, 8)

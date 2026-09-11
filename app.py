@@ -78,6 +78,10 @@ def render_dashboard(frame, source_name, source_id, issues):
                          "employee_id", "email", "provider", "status", "chat_id", "thread_id"],
                          format_func=lambda c: LABELS[c])
     summary = display_summary(summarize(selected, [group]))
+    if group in ("employee_id", "email", "chat_id", "thread_id"):
+        st.caption("ID чатов и тредов перечислены без повторов в пределах выбранных фильтров. "
+                   "Неуказанные ID не входят в количество уникальных. "
+                   "Связь конкретного чата с тредом доступна ниже в исходных вызовах.")
     st.dataframe(summary, hide_index=True, width="stretch")
     st.download_button("Скачать сводку CSV", csv_bytes(summary), "sb_summary.csv", "text/csv")
     with st.expander("Тепловая карта", expanded=False):

@@ -173,6 +173,20 @@ def summarize(frame, by):
         errors=("status", lambda x: int(x.eq("error").sum())),
         cancelled=("status", lambda x: int(x.eq("cancelled").sum())),
     ).reset_index()
+    # Employee summaries retain their chat/thread identifiers without splitting
+    # the employee's metrics into multiple rows or duplicating request totals.
+    if set(by) & {"employee_id", "email", "chat_id", "thread_id"}:
+        aggregations = {}
+        for column, prefix in (("chat_id", "chat"), ("thread_id", "thread")):
+            if column not in by:
+                aggregations[prefix + "_count"] = (
+                    column, lambda s: s[s.notna() & s.ne(MISSING)].nunique())
+                aggregations[prefix + "_ids"] = (
+                    column, lambda s: "; ".join(sorted(set(s.dropna()) - {MISSING})))
+        if aggregations:
+            identifiers = frame.groupby(by, dropna=False, sort=True).agg(
+                **aggregations).reset_index()
+            result = result.merge(identifiers, on=by, how="left", validate="one_to_one")
     return result
 
 
@@ -182,6 +196,8 @@ def display_summary(frame):
         "missing_cost": "Без стоимости", "latency_mean": "Средняя задержка, с",
         "latency_p95": "P95 задержки, с", "errors": "Ошибки", "cancelled": "Отмены",
         "date": "Дата",
+        "chat_count": "Уникальных чатов", "chat_ids": "ID чатов",
+        "thread_count": "Уникальных тредов", "thread_ids": "ID тредов",
     })
 
 
