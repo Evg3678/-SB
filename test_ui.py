@@ -21,6 +21,15 @@ class UITests(unittest.TestCase):
             self.assertEqual([t.label for t in app.tabs],
                              ["Обзор", "Сотрудники", "Модели", "Детализация", "Отчёт"])
             self.assertEqual(app.metric[0].value, "3")
+            sidebar_filters = app.sidebar.multiselect
+            labels = [m.label for m in sidebar_filters]
+            for label, preceding in (("Отдел организации · Скоро", "организация"),
+                                     ("ФИО сотрудника · Скоро", "ID сотрудника")):
+                control = next(m for m in sidebar_filters if m.label == label)
+                self.assertTrue(control.disabled)
+                self.assertEqual(control.options, [])
+                self.assertEqual(control.value, [])
+                self.assertEqual(labels.index(label), labels.index(preceding) + 1)
             self.assertIn("Уникальных чатов", app.tabs[1].dataframe[0].value)
             self.assertNotIn("ID чатов", app.tabs[1].dataframe[0].value)
             self.assertIn("ID чатов", app.tabs[1].dataframe[1].value)

@@ -52,6 +52,17 @@ def render_dashboard(frame, source_name, source_id, issues):
     for col in [c for c in CATEGORIES if c not in ("email", "chat_id", "thread_id")]:
         selections[col] = st.sidebar.multiselect(LABELS[col], options[col], key=keys[col],
             help="Учитывает период и остальные фильтры. Пустой выбор — все доступные значения.")
+        # Directory-backed fields are placeholders, not active log dimensions.
+        if col == "organization":
+            st.sidebar.multiselect("Отдел организации · Скоро", [], disabled=True,
+                key="planned_department", placeholder="Справочник ещё не подключён",
+                help="Отдел будет определяться по ID сотрудника из отдельного справочника "
+                     "и учитывать выбранную организацию.")
+        elif col == "employee_id":
+            st.sidebar.multiselect("ФИО сотрудника · Скоро", [], disabled=True,
+                key="planned_full_name", placeholder="Справочник ещё не подключён",
+                help="ФИО будет подставляться из отдельной базы по ID сотрудника "
+                     "в логах. До подключения базы фильтр недоступен.")
     with st.sidebar.expander("Дополнительные · email и ID"):
         for col in ("email", "chat_id", "thread_id"):
             selections[col] = st.multiselect(LABELS[col], options[col], key=keys[col],
